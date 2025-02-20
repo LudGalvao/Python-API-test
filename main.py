@@ -7,8 +7,6 @@ import logging
 
 app = FastAPI()
 
-DOWNLOAD_FOLDER = "downloads"
-
 @app.get("/download_audio")
 async def download_audio(youtube_url: str = Query(..., title="Youtube URL", description="Insira o link do vídeo do Youtube")):
     try:
@@ -20,13 +18,13 @@ async def download_audio(youtube_url: str = Query(..., title="Youtube URL", desc
         ydl_opts = {
             'format': 'bestaudio/best',  # Melhor áudio disponível
             'extractaudio': True,  # Extrair apenas o áudio
-            'outtmpl': f'{DOWNLOAD_FOLDER}/%(title)s.%(ext)s',  # Caminho do arquivo
+            'outtmpl': '%(title)s.%(ext)s',  # Salvar diretamente no diretório atual
         }
 
         # Usando yt-dlp para baixar o áudio
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             info_dict = ydl.extract_info(youtube_url, download=True)
-            file_path = f"{DOWNLOAD_FOLDER}/{info_dict['title']}.{info_dict['ext']}"
+            file_path = f"{info_dict['title']}.{info_dict['ext']}"
 
         # Verificar se o arquivo foi baixado corretamente
         if not os.path.exists(file_path):
