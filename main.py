@@ -1,4 +1,5 @@
 import os
+import re
 from fastapi import FastAPI, Query, HTTPException
 from fastapi.responses import FileResponse
 import yt_dlp
