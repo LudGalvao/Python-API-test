@@ -25,19 +25,15 @@ async def download_audio(youtube_url: str = Query(..., title="Youtube URL", desc
         if not YOUTUBE_REGEX.match(youtube_url):
             raise HTTPException(status_code=400, detail="URL inválida. Insira um link válido do YouTube.")
 
-        # Opções de download para armazenar em memória
+        # Opções de download sem usar o ffmpeg
         ydl_opts = {
-            'format': 'bestaudio/best',
-            'postprocessors': [{
-                'key': 'FFmpegExtractAudio',
-                'preferredcodec': 'mp3',
-                'preferredquality': '192',
-            }],
-            'quiet': True,
+            'format': 'bestaudio/best',  # Pegando o melhor áudio disponível
+            'outtmpl': '-',  # Saída para stdout
+            'quiet': True,  # Silenciar a saída do yt-dlp
         }
 
         # Usando NamedTemporaryFile para criar um arquivo temporário
-        with NamedTemporaryFile(suffix=".mp3", delete=False) as tmp_file:
+        with NamedTemporaryFile(suffix=".webm", delete=False) as tmp_file:
             tmp_filename = tmp_file.name
 
         # Função de download e salvamento no arquivo temporário
@@ -59,7 +55,7 @@ async def download_audio(youtube_url: str = Query(..., title="Youtube URL", desc
         title = download_audio_data()
 
         # Enviar a resposta com o áudio
-        return StreamingResponse(open(tmp_filename, "rb"), media_type="audio/mpeg", headers={"Content-Disposition": f"attachment; filename={title}.mp3"})
+        return StreamingResponse(open(tmp_filename, "rb"), media_type="audio/webm", headers={"Content-Disposition": f"attachment; filename={title}.webm"})
     
     except yt_dlp.DownloadError:
         logging.error(f"Erro ao baixar o áudio do link: {youtube_url}")
