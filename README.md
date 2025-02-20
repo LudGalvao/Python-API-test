@@ -1,1 +1,2 @@
-# Backend consumo de API LastFM
+# API feita em python usando o Fast API
+
