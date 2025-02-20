@@ -3,7 +3,9 @@ from fastapi.responses import StreamingResponse
 import yt_dlp
 import re
 import logging
+import os
 from io import BytesIO
+from tempfile import NamedTemporaryFile
 
 app = FastAPI()
 
@@ -31,32 +33,38 @@ async def download_audio(youtube_url: str = Query(..., title="Youtube URL", desc
                 'preferredcodec': 'mp3',
                 'preferredquality': '192',
             }],
-            'outtmpl': '-',  # Saída para stdout
             'quiet': True,
         }
 
-        # Buffer para armazenar o áudio baixado
-        audio_buffer = BytesIO()
+        # Usando NamedTemporaryFile para criar um arquivo temporário
+        with NamedTemporaryFile(suffix=".mp3", delete=False) as tmp_file:
+            tmp_filename = tmp_file.name
 
-        # Função de download e escrita no buffer
+        # Função de download e salvamento no arquivo temporário
         def download_audio_data():
             with yt_dlp.YoutubeDL(ydl_opts) as ydl:
                 info_dict = ydl.extract_info(youtube_url, download=True)
                 ydl.process_info(info_dict)
                 filename = ydl.prepare_filename(info_dict).replace(".webm", ".mp3").replace(".m4a", ".mp3")
+                
+                # Salvando o áudio no arquivo temporário
                 with open(filename, "rb") as f:
-                    audio_buffer.write(f.read())
-                audio_buffer.seek(0)
-                os.remove(filename)  # Remove o arquivo temporário
+                    with open(tmp_filename, "wb") as tmp_file:
+                        tmp_file.write(f.read())
+                
+                os.remove(filename)  # Apagar o arquivo original
+
                 return info_dict['title']
         
         title = download_audio_data()
-        return StreamingResponse(audio_buffer, media_type="audio/mpeg", headers={"Content-Disposition": f"attachment; filename={title}.mp3"})
 
+        # Enviar a resposta com o áudio
+        return StreamingResponse(open(tmp_filename, "rb"), media_type="audio/mpeg", headers={"Content-Disposition": f"attachment; filename={title}.mp3"})
+    
     except yt_dlp.DownloadError:
         logging.error(f"Erro ao baixar o áudio do link: {youtube_url}")
         raise HTTPException(status_code=500, detail="Erro ao baixar o áudio. Verifique se o link está correto e tente novamente.")
-
+    
     except Exception as e:
         logging.error(f"Erro inesperado: {str(e)}")
         raise HTTPException(status_code=500, detail="Ocorreu um erro interno. Tente novamente mais tarde.")
